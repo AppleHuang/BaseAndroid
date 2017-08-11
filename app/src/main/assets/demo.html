@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+<div id="log"></div>
+<button id="buttons" >js调用原生应用</button>
+</body>
+<script>
+        function isAndroid(){
+            var u = navigator.userAgent;
+            return u.indexOf('Android') > -1 || u.indexOf('Adr') > -1; //android终端
+        }
+
+        function setupWebViewJavascriptBridge(callback) {
+            if (window.WebViewJavascriptBridge) {return callback(WebViewJavascriptBridge);}
+            if (window.WVJBCallbacks) {return window.WVJBCallbacks.push(callback);}
+
+            if(isAndroid){
+                document.addEventListener(
+                    'WebViewJavascriptBridgeReady'
+                    , function() {
+                        callback(WebViewJavascriptBridge)
+                    },
+                    false
+                );
+            } else{
+                window.WVJBCallbacks = [callback];
+                var WVJBIframe = document.createElement('iframe');
+                WVJBIframe.style.display = 'none';
+                WVJBIframe.src = 'wvjbscheme://__BRIDGE_LOADED__';
+                document.documentElement.appendChild(WVJBIframe);
+                setTimeout(function() { document.documentElement.removeChild(WVJBIframe) }, 100)
+            }
+        }
+
+        setupWebViewJavascriptBridge(function(bridge) {
+            //在这里注册方法供java(OC)调用
+            bridge.registerHandler('JsFuntion', function(data, responseCallback) {
+                document.getElementById("log").innerHTML = data;
+                var responseData = "这是条信息来自于js星球";
+                responseCallback(responseData)
+            })
+
+			//在这里调用java(OC)方法
+            var callbackButton = document.getElementById('buttons');
+		    callbackButton.onclick = function(e) {
+                bridge.callHandler('getVersionName', '这是js的数据', function(data) {
+                    document.getElementById("log").innerHTML = data;
+                })
+           }
+        })
+	</script>
+</html>
